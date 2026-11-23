@@ -32,3 +32,19 @@
 账户改名后旧文件保留历史。若需迁移，让**原作者用新用户名亲自发起迁移 PR**。维护者对照各文件原创建 PR 的数字 ID 和迁移 PR 的作者 ID，核实目标路径空闲、日期及正文未变。只有仓库所有者授权的维护例外才能让该 PR 通过；使用 squash 合并，确保新路径的创建提交仍归属于原作者发起的 PR。找不到原始记录或无法核实身份时保留原文。
 
 脚本、模板和规则变更同样走专门的维护 PR。所有者可将日记检查放入独立规则集，仅在获授权的维护窗口为指定维护者配置 **For pull requests only** 的临时 bypass；审批、禁止直接推送和禁止强推保留在无 bypass 的规则集中。审核完整差异，合并后立即移除临时权限，并重跑上线验收。经典保护需由管理员调整对应的日记检查并记录恢复过程。维护窗口暂停其他合并。
+
+## GitHub Pages 阅读站
+
+在 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**，并将 `github-pages` 环境的部署来源限定为 main。提交合并到 main 后，`Publish growth journal` 构建并部署静态站，也可在 Actions 页选择 main 手动运行。访问地址以 deploy 作业的 environment 链接为准。仓库 URL 取自 GitHub 工作流上下文，资源前缀取自 Pages 配置，支持仓库子路径、自定义域和根路径。
+
+本地使用最新的 Node.js 22 LTS。项目锁定 VitePress 2.0.0-alpha.21 和对应依赖，升级后请重新检查默认主题及静态构建。依次运行：
+
+```sh
+npm ci
+npm run build
+npm run preview
+```
+
+打开终端给出的地址并进入仓库子路径（无远程时默认 `/startogether/`）。开发时可用 `npm run dev`。更改日记后重新构建或重启开发服务。`SITE_BASE` 可指定带首尾斜杠的路径；有 GitHub origin 或设置 `GITHUB_REPOSITORY=所有者/仓库名` 时生成指向该仓库的链接。
+
+构建只扫描 `journal/YY/MM/DD/用户名.md`。每篇正文单独使用禁用原始 HTML 的 Markdown 渲染器处理，Vue 模板、脚本及 frontmatter 均作为参与者内容处理。站点没有日记写入接口。主分支保护与日记所有权检查仍需按上文配置。
