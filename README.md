@@ -35,7 +35,7 @@
    ```
 
    检查 `git status` 的待提交区域，应只有自己的一个文件。首次推送按凭据管理器提示登录 GitHub；HTTPS 身份验证也可使用有权写入自己 Fork 的个人访问令牌。
-5. 打开自己的 Fork，点 **Compare & pull request**（或 **Contribute → Open pull request**）。Pull Request，简称 PR，是请原项目合并这次修改的请求。确认目标是**原仓库的 main**，来源是自己的 `diary-first`，在 **Files changed** 核对文件后提交。检查通过后等待维护者合并；同一分支后续 Commit 和 Push 会更新这一个 PR。
+5. 打开自己的 Fork，点 **Compare & pull request**（或 **Contribute → Open pull request**）。Pull Request，简称 PR，是请原项目合并这次修改的请求。确认目标是**原仓库的 main**，来源是自己的 `diary-first`，在 **Files changed** 核对文件后提交。仓库启用日记机器人后，合法日记通过必需检查即可自动合并。草稿请先点 **Ready for review**；同一分支后续 Commit 和 Push 会更新这一个 PR。
 
 ## 明天再写，或修改旧日记
 

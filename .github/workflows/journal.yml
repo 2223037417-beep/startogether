@@ -1,52 +1,42 @@
 name: Startogether journal
 on:
   pull_request_target:
-    branches: [main]
-    types: [opened, reopened, synchronize, edited]
-permissions:
-  pull-requests: read
+    types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft, auto_merge_enabled]
+permissions: {}
+concurrency:
+  group: journal-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 jobs:
-  ownership:
-    name: Startogether journal ownership
+  journal:
+    if: github.event.pull_request.base.ref == 'main' || github.event.changes.base.ref.from == 'main'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    timeout-minutes: 12
+    environment: journal-bot
     steps:
-      - name: Load validator from protected main
-        env:
-          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+      - name: Load trusted main without checking out PR content
         run: |
-          test "$TARGET_BRANCH" = main
           git clone --filter=blob:none --no-checkout --single-branch --branch main "https://github.com/$GITHUB_REPOSITORY.git" source
           cd source
-          git merge-base --is-ancestor "$BASE_SHA" origin/main
           mkdir tools
-          git show "${BASE_SHA}:tools/validate_pr.py" > tools/validate_pr.py
-          git show "${BASE_SHA}:tools/new_entry.py" > tools/new_entry.py
-      - name: Check PR metadata and Git objects
+          for name in journal_bot validate_pr new_entry; do
+            git show "origin/main:tools/$name.py" > "tools/$name.py"
+          done
+      - name: Create single-repository installation token
+        id: app
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.JOURNAL_APP_ID }}
+          private-key: ${{ secrets.JOURNAL_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-statuses: write
+          permission-checks: read
+      - name: Validate PR and merge eligible journal
         working-directory: source
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 tools/validate_pr.py
-
-  report:
-    name: Publish ownership result
-    needs: ownership
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      statuses: write
-    steps:
-      - name: Attach decision to the exact PR head
-        env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          APP_ID: ${{ vars.JOURNAL_APP_ID }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          RESULT: ${{ needs.ownership.result }}
-        run: |
-          state=failure
-          if [ "$RESULT" = success ]; then state=success; fi
-          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
-            -f context='Startogether / journal ownership' -f state="$state" \
-            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+        run: python3 tools/journal_bot.py

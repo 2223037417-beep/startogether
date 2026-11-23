@@ -75,21 +75,28 @@ def validate(pr, raw, owner_lookup, list_day):
         raise ValueError("当前账户 ID 与文件创建者不符；如已改名，请联系维护者。")
 
 
-def main():
-    event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
-    pr = event["pull_request"]
+def changes(pr, number):
     base, head = pr["base"]["sha"], pr["head"]["sha"]
     if not all(re.fullmatch("[0-9a-f]{40}", s) for s in (base, head)):
         raise ValueError("无效的提交标识。")
-    number = int(event["number"])
     git("fetch", "--no-tags", "--filter=blob:none", "origin", f"refs/pull/{number}/head")
     if git("rev-parse", "FETCH_HEAD").decode().strip() != head:
         raise ValueError("PR 已更新，请查看最新一次检查。")
     if subprocess.run(["git", "merge-base", "--is-ancestor", base, head]).returncode:
         raise ValueError("请先同步上游 main 至当前分支，再重新检查。")
-    raw = git("diff", "--raw", "-z", "--no-renames", "--no-ext-diff", "--ignore-submodules=none", base, head, "--")
+    return git("diff", "--raw", "-z", "--no-renames", "--no-ext-diff", "--ignore-submodules=none", base, head, "--")
+
+
+def validate_journal(pr, raw):
+    base = pr["base"]["sha"]
     validate(pr, raw, lambda p: historical_owner(base, p, os.environ["GITHUB_REPOSITORY"]),
              lambda directory: entries_on_day(base, directory))
+
+
+def main():
+    event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+    pr = event["pull_request"]
+    validate_journal(pr, changes(pr, int(event["number"])))
     print("通过：本次提交符合日记归属和日期规则。")
 
 

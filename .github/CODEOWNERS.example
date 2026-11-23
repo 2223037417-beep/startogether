@@ -1,0 +1,3 @@
+# 发布前复制为 .github/CODEOWNERS，将占位符替换为有写权限的真实维护者或团队。
+* @YOUR-MAINTAINER
+/journal/

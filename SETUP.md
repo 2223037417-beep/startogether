@@ -1,37 +1,75 @@
-# Startogether 维护指南
+# Startogether v2.1 维护指南
 
-## 发布与权限
+## 所有者首次发布
 
-1. 获所有者授权后，在 GitHub 建立空的 Public 仓库，上传本项目的初始提交到 `main`，将其设为默认分支。先完成下面的保护和验收，再开放投稿。本地可运行 `python3 -m unittest discover -s tests -v` 复查。
-2. **Settings → General → Pull Requests** 只启用 **Allow squash merging**。每篇日记的创建 PR 及其合并 SHA 用于日后核对作者。保持线性历史，关闭自动合并和合并队列。
-3. 只给维护者写权限。**Settings → Actions → General** 启用 Actions，默认令牌选只读，关闭 Actions 创建或批准 PR 的权限。**Fork pull request workflows from outside collaborators** 选择 **Require approval for all outside collaborators**。维护者不要批准 Fork 提供的工作流运行。内置的 `pull_request_target` 从受信任的默认分支触发，日记投稿无需批准任何由 Fork 定义的任务。组织仓库还需注意，组织成员可能不受外部贡献者审批策略约束。[GitHub 的 Fork 工作流审批说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/approve-runs-from-forks)
-4. 在开放投稿前，用外部账号从 Fork 提交一篇自己的日记，让检查成功运行一次，先保留 PR。这样状态会出现在最近运行过的检查候选列表中。
+1. 在自己的 GitHub 账户或组织名下创建空的 Public 仓库。将默认分支设为 `main`。只向维护者授予写权限。
+2. 将 [.github/CODEOWNERS.example](.github/CODEOWNERS.example) 复制为 `.github/CODEOWNERS`，把占位符替换为实际有写权限的维护者或可见团队。第一行规则 `* @维护者` 负责所有项目文件（含工作流与 CODEOWNERS 本身）；下一行 `/journal/` 留空，明确豁免日记目录。可以在第一行指定多位维护者。机器人会核对这两条规则以及 GitHub 报告的文件错误。把实际配置随项目提交到 main。没有远程时，由所有者执行 `git remote add origin 仓库地址` 和 `git push -u origin main`。
+3. **Settings → General → Pull Requests** 勾选 **Allow squash merging** 和 **Allow auto-merge**，关闭 merge commit、rebase、自动修复和 Merge Queue。机器人在所有条件已经满足时执行一次原生 Squash 合并。GitHub 的排队 Auto-merge 适用于尚有条件未满足的 PR；本项目会取消受管 PR 上已有的排队请求，以免对后续版本留下合并授权。[GitHub Auto-merge 的条件](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/automatically-merging-a-pull-request) · [带 head SHA 的合并 API](https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request)
+4. 在 **Settings → Actions → General** 启用 Actions，默认工作流权限选只读，关闭 Actions 创建或批准 PR。Fork 工作流选择 **Require approval for all outside collaborators**。日记机器人由可信 `pull_request_target` 自动运行。不要批准 Fork 提供的陌生工作流。组织应限制能修改上游分支和工作流的成员。
 
-## 强制合并条件
+## 安装专用 GitHub App
 
-在仓库 **Settings → Rules → Rulesets → New ruleset → New branch ruleset** 创建保护规则。Enforcement 选 **Active**，目标分支选 **Include default branch**（确认默认分支为 main），日常 bypass 列表留空。
+由所有者在账户或组织的 **Settings → Developer settings → GitHub Apps → New GitHub App** 创建私有 App。主页可用仓库地址，取消 Active webhook，安装范围选 Only on this account。不需要回调地址、事件订阅或独立服务。
 
-- 开启 **Require a pull request before merging**，要求至少一位有写权限的维护者批准，勾选新提交后撤销旧批准。
-- 开启 **Require status checks to pass**，添加精确名称 `Startogether / journal ownership`，预期来源选 **GitHub Actions**。开启 **Require branches to be up to date before merging**。这个名称是工作流明确写到 PR head SHA 的 commit status；在状态的 Details 可打开生成它的运行。若候选为空，请先检查试投 PR 的发布状态作业日志。
-- 开启 **Block force pushes**、**Restrict deletions**、**Require linear history**，保存。使用经典 Branch Protection 的仓库可在 **Settings → Branches** 为 `main` 配置相同的必需 PR、审批、严格状态检查和线性历史，并启用 **Do not allow bypassing the above settings**，保持禁止强推和删除。
-- 支持组织级必需工作流的部署，在 **Organization Settings → Repository → Rulesets** 为本仓库的 main 加上 **Require workflows to pass before merging**。来源选本仓库受保护的 main 和 `.github/workflows/journal.yml`。此规则绑定可信工作流本身；普通状态名称及 GitHub Actions 来源只能辨认报告应用。若普通参与者是组织成员，应采用这条来源绑定规则，并确保组织成员提交的 Fork 工作流不会被当作可信任务执行。[组织工作流规则](https://docs.github.com/en/enterprise-cloud@latest/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets#require-workflows-to-pass-before-merging)
-- 每次批准前点必需状态的 **Details**，确认这一运行属于**当前 PR 编号和最新 head**，且 ownership 作业实际成功。GitHub 的普通状态附在提交 SHA 上，另一份 PR 可以指向同一 SHA；尤其在个人仓库，维护者审批是核对这层对应关系的必要环节。只由维护者点击 **Squash and merge**。[必需状态检查与提交 SHA](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks)
+| Repository permissions | 用途 |
+| --- | --- |
+| Metadata · Read | 读取仓库及对 main 生效的规则 |
+| Pull requests · Read and write | 读取 PR、变更列表与历史归属，撤销已有的 Auto-merge |
+| Commit statuses · Read and write | 写入绑定到本次提交的策略结果 |
+| Checks · Read | 读取最新提交的必需检查 |
+| Contents · Read and write | GitHub 原生 Squash 合并 |
 
-## 上线验收
+在 **Install App → Only select repositories** 只选择本仓库。记录数字 **App ID**，生成并保管 PEM 私钥。在仓库 **Settings → Environments** 创建 `journal-bot`，仅允许分支 `main`，无需环境审批。在该环境添加变量 `JOURNAL_APP_ID` 和 secret `JOURNAL_APP_PRIVATE_KEY`（完整多行 PEM）。给 App 的 bypass 列表留空，不给 Administration、Workflows 或 Pages 写权限。私钥轮换时，先更新环境 secret、完成一次验收，再撤销旧密钥。
 
-从两个外部账号各发一篇自己的日记。检查 Details 与 PR 对应，批准并 squash 合并第一篇；第二个分支更新到最新 main 后也应通过。用第一个账号新开 PR 编辑已经合并的日记，确认能解析到创建者。在另一份测试 PR 中改动别人的日记、再追加系统文件，分别确认新 head 上结果为失败且合并被锁定。改回合法的一份文件后应重新通过。另用无写权限账号验证不能直推 main，核对规则没有管理员日常绕过项。遇到 Expected、Pending、权限错误或来源不明的绿灯，保留阻塞并核对状态名称、来源、事件及最新提交。
+工作流的默认 `GITHUB_TOKEN` 权限为空。固定版本的官方 Action 为本仓库签发短期 installation token，任务结束时撤销。由 App 发起合并，现有 Pages 工作流可接收 main 的 push。默认 `GITHUB_TOKEN` 触发的 push 通常不会再创建这个工作流运行。[安装令牌 Action](https://github.com/actions/create-github-app-token) · [GitHub 工作流触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)
 
-## 校验依据
+## main 的强制规则
 
-工作流只从公开上游读取 Git 对象，从已验证属于 main 的固定 base SHA 提取两个 Python 文件。PR head 只作为 Git 数据读取，并与事件 SHA 核对；不会检出 Fork 的工作树、安装其依赖或执行其文件。以固定 base/head 的完整 NUL 分隔 raw diff 核对全部文件与 Git 模式，避免实时文件列表分页、截断和更新竞态。关闭重命名检测使移动表现为删除与新增，两项都会导致拒绝。严格更新规则保证 main 前进后要重新检查。[GitHub 的 pull_request_target 安全说明](https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target)
+在 **Settings → Rules → Rulesets → New branch ruleset** 创建 Active 规则，目标仅为 main，不设 bypass。此实现通过 GitHub 的分支有效规则 API 检查 Rulesets；仅配置经典 Branch Protection 时，机器人会停在合并前。
 
-身份取 GitHub 事件的 PR 作者，日期取 PR 首次创建时间换算成 UTC+8（当前北京时间）。路径采用 2000–2099 年、小写用户名和真实日历日期。更新时，用受保护历史找到创建提交，再通过 GitHub API 找到同一仓库 main 上与之精确对应的已合并 PR，比较账户数字 ID。新增时也核对当日已有条目的创建者，避免同一账户改名后重复投稿。查询失败、限流和归属歧义均阻止合并；网络恢复后可重新运行。验证作业仅用 `pull-requests: read`，独立的报告作业仅用 `statuses: write`；两者均无仓库内容写权限。[提交关联 PR 的 API](https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit)
+- 开启 **Require a pull request before merging**，全局 **Required approvals = 0**，开启 **Require review from Code Owners** 和 **Dismiss stale pull request approvals when new commits are pushed**。关闭普遍要求他人批准最近一次推送的选项。代码文件由 catch-all Code Owner 审核；日记目录的例外由必需的归属检查覆盖。机器人不会提交 APPROVE review。[GitHub 对 CODEOWNERS 顺序、空所有者和强制审核的说明](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
+- 开启 **Require status checks to pass**，添加精确名称 `Startogether / PR policy`，预期来源选择**刚安装的专用 App**，启用 **Require branches to be up to date before merging**。同时开启 **Block force pushes**、**Restrict deletions** 和 **Require linear history**。机器人的执行作业要等待必需检查完成，因此不要把整个合并作业设为必需检查。
+- 首次配置时，用外部账号打开一篇合法日记 PR 以登记状态名称。它可以先发布日记策略绿灯，但在读不到上述严格规则时会停止。设置来源、保存规则后，重新运行该 PR 的全部作业。核对规则和 Code Owner 生效后再开放投稿。
+- 从 v2.0 升级时，先保留旧保护并暂停其他合并，完成新 App、CODEOWNERS 和新必需状态的配置，再移除旧的 `Startogether / journal ownership` 和全局 1 人审批。检查叠加的经典保护、组织规则和旧版 required workflow，避免继续等待已退休的检查。保留其他有意配置的安全检查。
 
-## 改名与系统维护
+**限制 App 修改其他基分支。** GitHub 的合并接口能原子校验 head SHA，接口参数没有 expected base branch。在上游另建分支规则集：目标为所有分支并排除 main，开启 **Restrict updates**。如需在这些分支上开发，仅将可信维护者或必要的内部写入身份加入该规则集允许列表，排除日记 App。这样即便在最后一次读取 PR 和 GitHub 执行合并之间改了目标，平台也会拒绝 App 更新其他基分支。参与者的 Fork 分支不受上游仓库分支规则影响。
 
-账户改名后旧文件保留历史。若需迁移，让**原作者用新用户名亲自发起迁移 PR**。维护者对照各文件原创建 PR 的数字 ID 和迁移 PR 的作者 ID，核实目标路径空闲、日期及正文未变。只有仓库所有者授权的维护例外才能让该 PR 通过；使用 squash 合并，确保新路径的创建提交仍归属于原作者发起的 PR。找不到原始记录或无法核实身份时保留原文。
+## 机器人如何判定
 
-脚本、模板和规则变更同样走专门的维护 PR。所有者可将日记检查放入独立规则集，仅在获授权的维护窗口为指定维护者配置 **For pull requests only** 的临时 bypass；审批、禁止直接推送和禁止强推保留在无 bypass 的规则集中。审核完整差异，合并后立即移除临时权限，并重跑上线验收。经典保护需由管理员调整对应的日记检查并记录恢复过程。维护窗口暂停其他合并。
+每次开 PR、更新提交、重新打开、修改目标、切换草稿状态或启用排队合并时，机器人读取 GitHub API 的 PR 编号、作者、状态、base 和 head。工作目录只加载公开上游 main 上的三个脚本；Fork 引用仅作为 Git 对象获取。校验对照固定 Git 树和 API 文件列表，沿用北京时间、真实日期、单文件、普通文件模式以及历史创建者数字 ID 等规则。禁用重命名检测后，跨目录移动会在 Git 差异中保留源路径。
+
+纯项目 PR 在分支审核规则与 CODEOWNERS 有效时得到“需人工审核”的策略结果，机器人随即退出。日记与代码混合提交、触碰他人文件或不符合日记规则都会失败。需要系统维护时，单独开纯代码 PR，由 Code Owner 批准后人工 Squash 合并。
+
+日记绿灯发布后，机器人核对 main 生效的严格规则、当前 PR 的全部必需检查和指向本次运行的状态链接，再读取文件及归属复验。最终合并请求固定 head SHA，GitHub 在执行时再次实施分支保护。合并消息由机器人生成，避免 PR 标题或提交正文中的跳过 CI 标记影响 Pages。GitHub 的 commit status 属于提交 SHA；不同 PR 可指向同一 SHA，因此维护者应让机器人完成普通日记的最终合并。[必需检查与 SHA](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks)
+
+同一 PR 的作业串行，不同 PR 可并行校验。GitHub 状态传播延迟时会限时重读；超时、权限不足或未知状态会停止。待暂时性问题消失后可 **Re-run all jobs**。两个 PR 基于同一 main 时，第一篇合并后，严格保护可能要求第二个分支 **Update branch** 或手动同步；随后对新 SHA 重新校验。机器人不会修改参与者的 Fork。若合并请求已发送但响应丢失，先查看 PR 的 merged 状态，重跑已合并的 PR 不会再次合并。
+
+## 真实仓库验收
+
+| 操作 | 应核实的 GitHub 证据 |
+| --- | --- |
+| 两个外部账户各发当天一篇日记 | PR 的状态来源是专用 App，Details 指向本 PR 的运行；没有人工批准即可由 App squash。若第二个 PR 落后，同步后自动重验 |
+| 修改自己已合并的旧日记 | 创建提交归属查询通过，历史更新被合并 |
+| 提交草稿，再转 ready | 草稿保持打开；转 ready 后新运行才可合并 |
+| 将一个仍在等待其他必需检查的合法 PR 改为混合或越权提交 | 新 head 的策略检查失败；旧 SHA 的绿灯不能让机器人合并。已有排队请求被平台或机器人清除 |
+| 修改他人日记、同时提交两篇、删除或移动日记 | 对应 head 上出现失败状态，合并被阻止 |
+| 只修改 README 或校验脚本 | 原 main 上的规则仍在执行；Code Owner 批准前被拦截，批准后由维护者人工合并 |
+| 暂时撤销 App 授权或令另一个必需检查 pending | PR 保持未合并。恢复授权或检查后，重新运行并查看最新结果 |
+| 检查分支保护 | 普通账户不能直推 main，App 没有 bypass，规则来源固定。若启用其他必需检查，逐一测试失败和挂起状态 |
+
+Pages 需要单独验收。在一篇实际自动合并的 PR 页面记下 **squash commit SHA**。在 **Actions → Publish growth journal** 确认事件为 `push`、分支为 main、运行对应这个 SHA，并检查 build 与 deploy 均成功。也可执行：
+
+```sh
+gh pr view PR编号 --json mergeCommit,mergedBy
+gh run list --workflow pages.yml --event push --commit 合并提交SHA
+gh run watch 运行编号 --exit-status
+```
+
+打开部署 URL，在该作者个人主页核对日期格、日记列表及正文。若连续发布合并为较新的 Pages 部署，核对最终部署提交包含该篇日记。没有 push 运行时，检查 mergedBy、Actions 开关和工作流；有运行但部署失败时，检查 Pages Source、环境和作业日志。手动触发可恢复站点，但不能作为自动触发成功的证据。
+
+## 账户改名
+
+由本人使用新账户名发起迁移 PR。维护者逐项核对原创建 PR 的数字 ID、目标路径、日期和正文。迁移是受控维护例外，日记机器人会拒绝移动操作。获所有者授权后可在暂停其他合并的维护窗口处理，并保留原作者发起的 squash PR 作为新路径的归属记录；恢复并验收强制规则后再开放投稿。不要向机器人授予绕过权限。
 
 ## GitHub Pages 阅读站
 

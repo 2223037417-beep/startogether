@@ -15,7 +15,7 @@ git push -u origin diary-first
 
 ## 创建 Pull Request
 
-在 Fork 页面点 **Compare & pull request**，目标选原仓库的 **main**，来源选自己的日记分支。在 **Files changed** 核对内容后提交。Pull Request 是请维护者合并修改的请求。检查通过并合并后，日记会在网站下次部署时出现。
+在 Fork 页面点 **Compare & pull request**，目标选原仓库的 **main**，来源选自己的日记分支。在 **Files changed** 核对内容后提交。Pull Request 是向原仓库提交修改的请求。启用机器人后，非草稿的合法日记通过必需检查即可自动合并。合并后，日记会在网站下次部署时出现。
 
 ## 下一次记录
 
