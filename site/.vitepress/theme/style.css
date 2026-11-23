@@ -591,3 +591,26 @@ h2 {
     object-position: center 53%;
   }
 }
+
+.founder-letter .vp-doc {
+  max-width: 38rem;
+  margin-inline: auto;
+}
+.founder-letter .vp-doc h1 {
+  color: var(--forest);
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  line-height: 1.4;
+  margin-bottom: 2rem;
+}
+.founder-letter .vp-doc p {
+  font-size: 1.0625rem;
+  line-height: 1.95;
+  margin-block: 1.25rem;
+}
+.founder-letter .vp-doc strong {
+  color: var(--forest);
+}
+.founder-letter .vp-doc p:last-child {
+  border-top: 1px solid var(--line);
+  padding-top: 1.25rem;
+}

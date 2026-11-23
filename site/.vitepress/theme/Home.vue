@@ -18,7 +18,7 @@ const { theme } = useData();
         <div class="actions">
           <a class="button primary" :href="withBase('/guide/')"
             ><Icon name="pen" />开始记录</a
-          ><a class="button secondary" href="#about"
+          ><a class="button secondary" :href="withBase('/letter.html')"
             ><Icon name="book" />了解项目</a
           >
         </div>
