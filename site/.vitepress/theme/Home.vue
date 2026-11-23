@@ -41,7 +41,7 @@ const { theme } = useData();
       <div>
         <h2>关于 Startogether</h2>
         <p>
-          一件做成的小事，一次坚持下来的练习，都值得留下一笔。每人每天一篇日记，写给自己，也让同行的人读到。
+          每一次记录，都在我们偕行的日历上点亮一颗星。
         </p>
         <a
           class="text-link"
