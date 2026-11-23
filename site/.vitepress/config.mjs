@@ -5,7 +5,7 @@ export default defineConfig({
   title: "Startogether",
   lang: "zh-CN",
   description: "用一篇日记，记录每天的小成功。",
-  appearance: true,
+  appearance: { disableTransition: false },
   lastUpdated: false,
   head: [["link", { rel: "icon", href: base + "mark.svg" }]],
   themeConfig: {

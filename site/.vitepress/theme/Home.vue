@@ -23,12 +23,17 @@ const { theme } = useData();
           >
         </div>
       </div>
-      <img
-        class="woodland"
-        :src="withBase('/woodland.webp')"
-        alt="松林间的小径延伸向远处的山脊"
-        fetchpriority="high"
-      />
+      <figure class="hero-scene">
+        <div class="hero-landscape" aria-hidden="true">
+          <img class="day-scene" :src="withBase('/woodland.webp')" alt="" />
+          <img class="night-scene" :src="withBase('/perseids.jpg')" alt="" />
+        </div>
+        <figcaption class="night-credit">
+          <a href="https://www.nasa.gov/image-article/behold-perseid-meteor-shower/">
+            英仙座流星雨 · NASA / Bill Ingalls
+          </a>
+        </figcaption>
+      </figure>
     </section>
     <Calendar :entries="data.entries" :stats="data.community" home />
     <section id="about" class="about">
