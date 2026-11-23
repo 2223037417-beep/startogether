@@ -9,11 +9,11 @@ const { theme } = useData();
   <main class="shell home">
     <section class="hero">
       <div class="hero-text">
-        <p class="signature"><i></i> 开放成长日记</p>
+        <p class="signature"><i></i> 星起偕行</p>
         <h1>把微小的进步，<br /><em>写成日常。</em></h1>
         <p class="intro">
-          记录今天的小成功，勾选自己的小目标。<br />用一篇篇 Markdown
-          日记，和大家一起慢慢生长。
+          让进步 看得见<br />用一篇篇 Markdown
+          日记，和大家一起成长。
         </p>
         <div class="actions">
           <a class="button primary" :href="withBase('/guide/')"

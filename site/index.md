@@ -1,5 +1,5 @@
 ---
 layout: page
-title: 开放成长日记
+title: 星起偕行
 ---
 <Home />
