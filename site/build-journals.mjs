@@ -58,6 +58,9 @@ function scan(directory) {
     )
       throw new Error(relative);
     const source = fs.readFileSync(full, "utf8");
+    const checkInOnly = source.length === 0;
+    entries.push({ date, user, checkInOnly });
+    if (checkInOnly) continue;
     const html = markdown.render(source, { relative });
     const dest = path.join(output, user);
     fs.mkdirSync(dest, { recursive: true });
@@ -69,7 +72,6 @@ function scan(directory) {
       path.join(dest, date + ".md"),
       `---\nlayout: page\ntitle: "${date} · @${user}"\n---\n<script setup>\nimport entry from './${date}.json'\n</script>\n<Reader :entry="entry" />\n`,
     );
-    entries.push({ date, user });
   }
 }
 if (fs.existsSync(journal)) scan(journal);
@@ -105,4 +107,4 @@ fs.writeFileSync(
     today: new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10),
   }),
 );
-console.log(`读取 ${entries.length} 篇日记，${users.size} 位记录者。`);
+console.log(`读取 ${entries.length} 条记录，${users.size} 位记录者。`);

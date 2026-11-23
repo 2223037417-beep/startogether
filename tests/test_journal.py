@@ -49,6 +49,27 @@ class Entries(unittest.TestCase):
             self.assertEqual(create("ALICE"), (path, False))
             self.assertEqual(path.read_text(encoding="utf-8"), "我的正文")
 
+    def test_private_note_stays_outside_git(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp).resolve()
+            repo = home / "checkout"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            now = instant("2026-11-23T16:00:00")
+            with patch.object(Path, "home", return_value=home):
+                note, marker = new_entry.create_private_entry("Alice", repo, now)
+                note.write_text("private draft", encoding="utf-8")
+                self.assertEqual(new_entry.create_private_entry("alice", repo, now), (note, marker))
+                self.assertEqual(note.read_text(encoding="utf-8"), "private draft")
+                self.assertEqual(marker.read_bytes(), b"")
+                subprocess.run(["git", "add", "."], cwd=repo, check=True)
+                staged = subprocess.check_output(["git", "ls-files"], cwd=repo).decode().strip()
+                self.assertEqual(staged, "journal/26/11/24/alice.md")
+                marker.write_text("shared excerpt", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "已有正文"):
+                    new_entry.create_private_entry("alice", repo, now)
+                self.assertEqual(marker.read_text(encoding="utf-8"), "shared excerpt")
+
     def test_invalid_names(self):
         for name in ["../bob", "-a", "a--b", "a/b", "a\\b", "a" * 40, "ａ", "a\n"]:
             with self.subTest(name=name), self.assertRaises(ValueError):

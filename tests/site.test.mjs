@@ -43,7 +43,19 @@ test("静态日历去重、跨年连续天数和日记正文渲染", (t) => {
       "# 记录\n\n- [x] 完成\n\n<aside>原文</aside>\n\n{{ 今日 }}\n\n[相关日记](alice.md)",
     );
   }
+  const marker = path.join(temp, "journal/25/12/31/alice.md");
+  fs.writeFileSync(marker, "");
   const data = build();
+  const record = data.entries.find(e => e.date === "2025-12-31");
+  assert.equal(record.checkInOnly, true);
+  const privatePage = path.join(site, "entries/alice/2025-12-31");
+  assert.ok(!fs.existsSync(privatePage + ".md"));
+  assert.ok(!fs.existsSync(privatePage + ".json"));
+  fs.writeFileSync(marker, "I chose to share this");
+  const shared = build();
+  assert.deepEqual(shared.people.alice, data.people.alice);
+  assert.equal(shared.entries.find(e => e.date === record.date).checkInOnly, false);
+  assert.match(JSON.parse(fs.readFileSync(privatePage + ".json")).html, /chose to share/);
   assert.equal(data.entries.length, 5);
   assert.deepEqual(data.community, {
     total: 4,

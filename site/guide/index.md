@@ -20,12 +20,24 @@ git switch -c diary-first
 
 Clone 将仓库下载到电脑。可以在 GitHub 的 Settings → Emails 中找到自己的 noreply 邮箱。
 
-## 生成今天的日记
+## 选择今天的记录方式
 
 将 `alice` 换成自己的 GitHub 用户名。Windows 可将 `python3` 换为 `py -3`。
 
+### 私密日记，只公开打卡
+
 ```sh
-python3 tools/new_entry.py alice
+python3 tools/new_entry.py alice --private
+```
+
+终端会给出两个路径。打开第一个，在电脑主目录的 `.startogether-private` 文件夹里写日记。第二个是 `journal/` 下的空文件，保持空白，按[提交与合并](./submit)的步骤只提交它。合并并更新网站后，大家能看到你的用户名和打卡日期，热力图会亮起，正文只有你自己保管。
+
+以后想分享这一天，可以把愿意公开的段落写进原来的空文件，再提交一次。同一天仍只算一次打卡。
+
+### 公开分享日记
+
+```sh
+python3 tools/new_entry.py alice --public
 ```
 
 打开终端显示的 Markdown 文件，写下今天的收获。任务可以这样写：

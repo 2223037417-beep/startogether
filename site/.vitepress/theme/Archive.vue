@@ -96,10 +96,10 @@ watch(
       ><Calendar :entries="records" :stats="stats" />
       <section class="history">
         <h2>
-          历史日记 <small>{{ records.length }} 篇</small>
+          历史记录 <small>{{ records.length }} 条</small>
         </h2>
         <p v-if="!records.length">
-          这里还没有公开日记。<a class="text-link" :href="withBase('/guide/')"
+          这里还没有打卡记录。<a class="text-link" :href="withBase('/guide/')"
             >写下第一篇</a
           >
         </p>
@@ -108,7 +108,8 @@ watch(
           :key="e.date + e.user"
           class="entry-row"
         >
-          <a :href="diary(e)"><Icon name="book" /> {{ e.date }} 的日记</a
+          <span v-if="e.checkInOnly">{{ e.date }} 已打卡 · 正文未分享</span>
+          <a v-else :href="diary(e)"><Icon name="book" /> {{ e.date }} 的日记</a
           ><a :href="profileUrl(e.user)">@{{ e.user }}</a>
         </div>
         <button
@@ -122,7 +123,7 @@ watch(
     >
     <section v-else class="history">
       <h2>记录者</h2>
-      <p v-if="!people.length">首篇日记合并后，记录者会出现在这里。</p>
+      <p v-if="!people.length">首次打卡合并后，记录者会出现在这里。</p>
       <a v-for="p in people" :key="p" class="participant" :href="profileUrl(p)"
         >@{{ p }}</a
       >

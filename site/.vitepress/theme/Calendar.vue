@@ -48,17 +48,19 @@ const cells = computed(() => {
   for (let ms = start, i = offset; ms < end; ms += 86400000, i++) {
     const date = new Date(ms).toISOString().slice(0, 10);
     const items = byDate.value.get(date) || [];
+    const singleDiary = items.length === 1 && !items[0].checkInOnly;
     const label =
       date +
       " · " +
       (items.length
-        ? items.length + " 篇日记"
+        ? items.length === 1 && items[0].checkInOnly ? "已打卡 · 正文未分享" : items.length + " 人打卡"
         : date > today.value
           ? "尚未到来"
           : "未记录");
     result.push({
       date,
       items,
+      singleDiary,
       label,
       col: Math.floor(i / 7) + 1,
       row: (i % 7) + 2,
@@ -86,7 +88,7 @@ const streak = computed(() =>
             {{
               home
                 ? "每一格，都是可以记录的一天。"
-                : "选择有记录的日期，阅读当天的日记。"
+                : "选择已点亮的日期，查看当天的记录。"
             }}
           </p>
         </div>
@@ -123,7 +125,7 @@ const streak = computed(() =>
             v-for="c in cells"
             :key="c.date"
             :is="
-              c.items.length === 1 ? 'a' : c.items.length ? 'button' : 'span'
+              c.singleDiary ? 'a' : c.items.length ? 'button' : 'span'
             "
             class="day"
             :class="{
@@ -134,8 +136,8 @@ const streak = computed(() =>
             :style="{ gridColumn: c.col, gridRow: c.row }"
             :title="c.label"
             :aria-label="c.label"
-            :href="c.items.length === 1 ? diary(c.items[0]) : undefined"
-            @click="selected = c.items.length > 1 ? c.date : ''"
+            :href="c.singleDiary ? diary(c.items[0]) : undefined"
+            @click="selected = c.items.length && !c.singleDiary ? c.date : ''"
           ></component>
         </div>
       </div>
@@ -144,7 +146,7 @@ const streak = computed(() =>
       <span>{{
         stats.total
           ? "累计记录 " + stats.total + " 天"
-          : "还没有日记，第一篇将点亮这里。"
+          : "第一次打卡后，日历就会亮起。"
       }}</span>
       <div class="legend">
         <span><b></b>未记录</span><span><b class="active"></b>已记录</span
@@ -153,9 +155,10 @@ const streak = computed(() =>
     </div>
     <div v-if="selected" class="selections">
       <b>{{ selected }}</b>
-      <a v-for="e in byDate.get(selected)" :href="diary(e)" :key="e.user"
-        >@{{ e.user }} 的日记</a
-      >
+      <template v-for="e in byDate.get(selected)" :key="e.user">
+        <span v-if="e.checkInOnly">@{{ e.user }} 已打卡 · 正文未分享</span>
+        <a v-else :href="diary(e)">@{{ e.user }} 的日记</a>
+      </template>
     </div>
     <div v-if="!home" class="metrics">
       <div
