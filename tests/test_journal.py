@@ -70,6 +70,24 @@ class Entries(unittest.TestCase):
                     new_entry.create_private_entry("alice", repo, now)
                 self.assertEqual(marker.read_text(encoding="utf-8"), "shared excerpt")
 
+    def test_custom_private_directory_is_separate_from_checkout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp).resolve()
+            root = vault / "checkout"
+            root.mkdir()
+            notes = vault / "私密日记"
+            now = instant("2026-11-23T16:00:00")
+            note, marker = new_entry.create_private_entry("alice", root, now, notes)
+            self.assertEqual(note, notes / "26/11/24/alice.md")
+            self.assertEqual(marker, root / "journal/26/11/24/alice.md")
+            self.assertEqual(marker.read_bytes(), b"")
+            self.assertTrue(note.is_file())
+            link = vault / "linked-checkout"
+            link.symlink_to(root, target_is_directory=True)
+            for bad_dir in (root / "notes", link / "notes", vault):
+                with self.subTest(bad_dir=bad_dir), self.assertRaises(ValueError):
+                    new_entry.create_private_entry("alice", root, now, bad_dir)
+
     def test_invalid_names(self):
         for name in ["../bob", "-a", "a--b", "a/b", "a\\b", "a" * 40, "ａ", "a\n"]:
             with self.subTest(name=name), self.assertRaises(ValueError):

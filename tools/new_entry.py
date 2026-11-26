@@ -49,16 +49,17 @@ def create_entry(login, root=ROOT, now=None):
     return write_template(path, day)
 
 
-def create_private_entry(login, root=ROOT, now=None):
+def create_private_entry(login, root=ROOT, now=None, private_dir=None):
     now = now or datetime.now(BEIJING)
+    root = root.resolve()
+    folder = (private_dir or Path.home() / ".startogether-private").expanduser().absolute()
+    resolved = folder.resolve()
+    if resolved == root or root in resolved.parents or resolved in root.parents:
+        raise ValueError("私密目录必须与项目仓库分开。")
     marker, _ = entry_path(login, root, now, "journal")
-    note_root = Path.home().resolve()
-    local_folder = note_root / ".startogether-private"
-    if local_folder == root or root in local_folder.parents:
-        raise ValueError("私密目录必须位于项目仓库之外。")
     if marker.exists() and marker.stat().st_size:
         raise ValueError("当天的投稿文件已有正文。请先核对它的内容和提交历史，再选择只打卡。")
-    note, day = entry_path(login, note_root, now, local_folder.name)
+    note, day = entry_path(login, folder.parent.resolve(), now, folder.name)
     write_template(note, day)
     try:
         marker.touch(exist_ok=False)
@@ -74,10 +75,13 @@ def main():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--private", action="store_true", help="正文保存在本地，仅提交空白打卡文件")
     mode.add_argument("--public", action="store_true", help="在仓库内撰写可公开的日记（默认）")
+    parser.add_argument("--private-dir", type=Path, help="私密正文目录（父目录需存在）")
     args = parser.parse_args()
+    if args.private_dir is not None and not args.private:
+        parser.error("--private-dir 需与 --private 一起使用")
     try:
         if args.private:
-            note, marker = create_private_entry(args.username)
+            note, marker = create_private_entry(args.username, private_dir=args.private_dir)
             print("只在这里写私密正文：", note)
             print("只提交这个空文件：", marker.relative_to(ROOT))
             return
